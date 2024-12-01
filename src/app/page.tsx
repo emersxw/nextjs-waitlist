@@ -3,6 +3,7 @@
 import { useState, type FormEvent, type ChangeEvent } from "react";
 
 type InputStatus = "idle" | "loading" | "error" | "success";
+type Language = "en" | "pt-BR";
 
 interface FormFields {
   name: string;
@@ -15,9 +16,38 @@ interface ApiResponse {
   error?: string;
 }
 
+const translations = {
+  "en": {
+    title: "Join waitlist",
+    subtitle: "Be notified when we launch.",
+    name: "Name",
+    email: "you@example.com",
+    join: "Join",
+    joining: "Joining...",
+    success: (name: string) => `Thanks for joining, ${name}! We'll be in touch soon.`,
+    error: {
+      default: "An unexpected error occurred.",
+      prefix: "Error: ",
+    },
+  },
+  "pt-BR": {
+    title: "Entre na lista de espera",
+    subtitle: "Seja notificado quando lançarmos.",
+    name: "Nome",
+    email: "voce@exemplo.com",
+    join: "Participar",
+    joining: "Participando...",
+    success: (name: string) => `Obrigado por participar, ${name}! Entraremos em contato em breve.`,
+    error: {
+      default: "Ocorreu um erro inesperado.",
+      prefix: "Erro: ",
+    },
+  },
+} as const;
+
 const INITIAL_FORM_STATE: FormFields = {
-  name: "Emerson",
-  email: "emerson@emerson.com",
+  name: "",
+  email: "",
 };
 
 const LOADING_DELAY = 1000;
@@ -27,6 +57,9 @@ export default function WaitlistForm() {
   const [formData, setFormData] = useState<FormFields>(INITIAL_FORM_STATE);
   const [message, setMessage] = useState("");
   const [status, setStatus] = useState<InputStatus>("idle");
+  const [lang, setLang] = useState<Language>("en");
+
+  const t = translations[lang];
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -54,29 +87,38 @@ export default function WaitlistForm() {
 
       if (response.ok) {
         setStatus("success");
-        setMessage(`Thanks for joining, ${data.name}! We'll be in touch soon.`);
+        setMessage(t.success(data.name));
         setFormData(INITIAL_FORM_STATE);
       } else {
         setStatus("error");
-        setMessage(`Error: ${data.error}`);
+        setMessage(`${t.error.prefix}${data.error}`);
       }
     } catch (error) {
       console.error("Error submitting form:", error);
       setStatus("error");
-      setMessage("An unexpected error occurred.");
+      setMessage(t.error.default);
     }
   };
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-6 md:p-24">
       <div className="w-full max-w-sm">
-        <Header />
+        <div className="flex justify-end mb-8">
+          <LanguageSwitch currentLang={lang} onLanguageChange={setLang} />
+        </div>
+        <Header title={t.title} subtitle={t.subtitle} />
         <div className="mt-10">
           <Form
             formData={formData}
             status={status}
             handleChange={handleChange}
             handleSubmit={handleSubmit}
+            translations={{
+              name: t.name,
+              email: t.email,
+              join: t.join,
+              joining: t.joining,
+            }}
           />
         </div>
         <div className="mt-4">
@@ -87,13 +129,41 @@ export default function WaitlistForm() {
   );
 }
 
-function Header() {
+function LanguageSwitch({
+  currentLang,
+  onLanguageChange,
+}: {
+  currentLang: Language;
+  onLanguageChange: (lang: Language) => void;
+}) {
+  return (
+    <div className="flex items-center gap-3">
+      <button
+        onClick={() => onLanguageChange("en")}
+        className={`text-sm transition-opacity ${
+          currentLang === "en" ? "opacity-100" : "opacity-50 hover:opacity-75"
+        }`}
+      >
+        EN
+      </button>
+      <div className="w-px h-4 bg-[var(--input-border)]" />
+      <button
+        onClick={() => onLanguageChange("pt-BR")}
+        className={`text-sm transition-opacity ${
+          currentLang === "pt-BR" ? "opacity-100" : "opacity-50 hover:opacity-75"
+        }`}
+      >
+        PT
+      </button>
+    </div>
+  );
+}
+
+function Header({ title, subtitle }: { title: string; subtitle: string }) {
   return (
     <div>
-      <h1 className="text-3xl font-normal tracking-tight">Join waitlist</h1>
-      <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
-        Be notified when we launch.
-      </p>
+      <h1 className="text-3xl font-normal tracking-tight">{title}</h1>
+      <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">{subtitle}</p>
     </div>
   );
 }
@@ -103,9 +173,15 @@ interface FormProps {
   status: InputStatus;
   handleChange: (e: ChangeEvent<HTMLInputElement>) => void;
   handleSubmit: (e: FormEvent<HTMLFormElement>) => void;
+  translations: {
+    name: string;
+    email: string;
+    join: string;
+    joining: string;
+  };
 }
 
-function Form({ formData, status, handleChange, handleSubmit }: FormProps) {
+function Form({ formData, status, handleChange, handleSubmit, translations }: FormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <FormInput
@@ -115,6 +191,7 @@ function Form({ formData, status, handleChange, handleSubmit }: FormProps) {
         onChange={handleChange}
         disabled={status === "loading"}
         status={status}
+        placeholder={translations.name}
       />
       <FormInput
         id="email"
@@ -123,8 +200,13 @@ function Form({ formData, status, handleChange, handleSubmit }: FormProps) {
         onChange={handleChange}
         disabled={status === "loading"}
         status={status}
+        placeholder={translations.email}
       />
-      <SubmitButton status={status} />
+      <SubmitButton 
+        status={status} 
+        joinText={translations.join}
+        joiningText={translations.joining}
+      />
     </form>
   );
 }
@@ -136,6 +218,7 @@ interface FormInputProps {
   onChange: (e: ChangeEvent<HTMLInputElement>) => void;
   disabled: boolean;
   status: InputStatus;
+  placeholder: string;
 }
 
 function FormInput({
@@ -145,11 +228,12 @@ function FormInput({
   onChange,
   disabled,
   status,
+  placeholder,
 }: FormInputProps) {
   return (
     <div>
       <label htmlFor={id} className="sr-only">
-        {id.charAt(0).toUpperCase() + id.slice(1)}
+        {placeholder}
       </label>
       <input
         id={id}
@@ -157,7 +241,7 @@ function FormInput({
         type={type}
         value={value}
         onChange={onChange}
-        placeholder={id.charAt(0).toUpperCase() + id.slice(1)}
+        placeholder={placeholder}
         required
         disabled={disabled}
         className={getInputStyles(status)}
@@ -166,7 +250,15 @@ function FormInput({
   );
 }
 
-function SubmitButton({ status }: { status: InputStatus }) {
+function SubmitButton({ 
+  status, 
+  joinText, 
+  joiningText 
+}: { 
+  status: InputStatus;
+  joinText: string;
+  joiningText: string;
+}) {
   return (
     <button
       type="submit"
@@ -177,7 +269,7 @@ function SubmitButton({ status }: { status: InputStatus }) {
         focus:ring-offset-[var(--background)] transition-all
         ${status === "loading" ? "opacity-50 cursor-not-allowed" : "hover:opacity-90"}`}
     >
-      {status === "loading" ? "Joining..." : "Join →"}
+      {status === "loading" ? `${joiningText}` : `${joinText} →`}
     </button>
   );
 }
@@ -203,7 +295,7 @@ function StatusMessage({ status, message }: { status: InputStatus; message: stri
 
 function getInputStyles(status: InputStatus) {
   const baseStyles =
-    "block w-full border-0 bg-[var(--input-background)] px-4 py-3 text-sm transition-colors";
+    "block w-full border-0 bg-[var(--input-background)] px-4 py-3 text-sm transition-colors placeholder:text-[var(--foreground)] placeholder:opacity-50";
   
   const borderStyles = {
     idle: "border border-[var(--input-border)] focus:border-[var(--input-border-focus)]",
