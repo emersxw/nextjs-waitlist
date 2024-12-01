@@ -3,20 +3,20 @@
 @tailwind utilities;
 
 :root {
-  --background: #000000;
-  --foreground: #ffffff;
-  --input-background: #111111;
-  --input-border: #262626;
-  --input-border-focus: #ffffff;
+  --background: #ffffff;
+  --foreground: #000000;
+  --input-background: #fafafa;
+  --input-border: #e5e5e5;
+  --input-border-focus: #000000;
 }
 
-@media (prefers-color-scheme: light) {
+@media (prefers-color-scheme: dark) {
   :root {
-    --background: #ffffff;
-    --foreground: #000000;
-    --input-background: #fafafa;
-    --input-border: #e5e5e5;
-    --input-border-focus: #000000;
+    --background: #000000;
+    --foreground: #ffffff;
+    --input-background: #111111;
+    --input-border: #262626;
+    --input-border-focus: #ffffff;
   }
 }
 
@@ -34,12 +34,12 @@ body {
   opacity: 0.5;
 }
 
-:-ms-input-placeholder {
-  color: var(--foreground);
-  opacity: 0.5;
+video {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
 }
 
-::-ms-input-placeholder {
-  color: var(--foreground);
-  opacity: 0.5;
+.shadow-2xl {
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
 }
